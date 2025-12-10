@@ -56,7 +56,7 @@ const getTextSchema = () => {
       },
       twitter: {
         type: Type.STRING,
-        description: "Optimized X (Twitter) post, short, punchy (MUST NOT exceed 300 characters), emojis, hashtags, and the product link.",
+        description: "Optimized X (Twitter) post. It must be short, punchy, with emojis, hashtags, and the product link. CRITICAL RULE: The entire response for this field MUST be under 300 characters. DO NOT exceed this limit.",
       },
       linkedin: {
         type: Type.STRING,
@@ -70,7 +70,7 @@ const getTextSchema = () => {
         type: Type.OBJECT,
         properties: {
           title: { type: Type.STRING, description: "SEO optimized catchy title for Pinterest." },
-          description: { type: Type.STRING, description: "Detailed SEO description for Pinterest (MUST NOT exceed 800 characters) with keywords, hashtags and call to action." }
+          description: { type: Type.STRING, description: "Detailed SEO description for Pinterest with keywords, hashtags and call to action. CRITICAL RULE: The entire response for this field MUST be under 800 characters. DO NOT exceed this limit." }
         },
         required: ["title", "description"]
       },
@@ -94,7 +94,9 @@ const getTextSchema = () => {
 const generateTextPosts = async (ai: GoogleGenAI, input: UserInput, language: 'ar' | 'en'): Promise<GeneratedSocialContent> => {
     const systemInstruction = `
     You are an expert Social Media Manager and SEO Specialist.
-    Your task is to create highly optimized and visually appealing social media posts for Facebook, Instagram, Pinterest, X (Twitter), LinkedIn, VK, YouTube, and TikTok.
+    Your task is to create highly optimized and visually appealing social media posts for all platforms.
+
+    **CRITICAL RULE: You MUST strictly adhere to the character limits for each platform. This is not a suggestion, but a hard requirement. Failure to meet these limits will make the output unusable.**
     
     Guidelines:
     1. **Tone**: Professional, engaging, and persuasive.
@@ -109,13 +111,13 @@ const generateTextPosts = async (ai: GoogleGenAI, input: UserInput, language: 'a
        - Use the provided Keyword naturally.
        - Include the Product URL ONLY where clickable (Facebook, X, LinkedIn, VK, Pinterest, YouTube).
        - **For Instagram and TikTok, you MUST NOT include the product URL**. Instead, you MUST use a clear call-to-action like 'Link in Bio' or 'الرابط في البايو'.
-    5. **Platform Specifics**:
+    5. **Platform Specifics & Character Limits (MANDATORY)**:
        - **Facebook**: Conversational, moderate length, link preview focus.
        - **Instagram**: Visual storytelling, a clear "Link in Bio" CTA (DO NOT include the URL in the caption), and a block of ~15-20 relevant hashtags at the bottom.
-       - **X (Twitter)**: Concise, trending hashtags, direct link. The post MUST NOT exceed 300 characters.
+       - **X (Twitter)**: **ABSOLUTE LIMIT: The entire post MUST be under 300 characters.** It must be concise, use trending hashtags, and include the direct link.
        - **LinkedIn**: Professional, industry-focused, clear value proposition, use bullet points if applicable.
        - **VK**: Informal yet informative, widely used in CIS, similar to Facebook structure but can be more community-focused.
-       - **Pinterest**: SEO-heavy Title and Description. The description MUST be under 800 characters.
+       - **Pinterest**: SEO-heavy Title and Description. **ABSOLUTE LIMIT: The description MUST be under 800 characters. This is a strict rule.**
        - **YouTube**: High-impact Title (under 60 chars preferred for mobile, but up to 100). Detailed description optimized for SEO, first 2 sentences are crucial. Include the link in the first paragraph.
        - **TikTok**: Short, snappy, and entertaining caption. Must include a strong hook. Use 3-7 highly relevant, trending hashtags. **CRITICAL: DO NOT include the URL**, use 'Link in Bio' instead.
     6. **Hashtags Strategy (CRITICAL)**: 
@@ -147,7 +149,40 @@ const generateTextPosts = async (ai: GoogleGenAI, input: UserInput, language: 'a
 
   const text = response.text;
   if (!text) throw new Error("Empty text response from AI");
-  return JSON.parse(text) as GeneratedSocialContent;
+  
+  const generatedContent = JSON.parse(text) as GeneratedSocialContent;
+
+  const correctionTasks = [];
+
+  // Post-generation validation and correction for Pinterest
+  if (generatedContent.pinterest.description.length > 800) {
+      console.warn(`Pinterest description too long (${generatedContent.pinterest.description.length}). Requesting correction.`);
+      const correctionPrompt = `Please shorten this Pinterest description to be well under 800 characters, in ${language === 'ar' ? 'Arabic' : 'English'}. Preserve the core message, SEO keywords, hashtags, and call to action. Here is the text: "${generatedContent.pinterest.description}"`;
+      correctionTasks.push(
+          ai.models.generateContent({ model: "gemini-2.5-flash", contents: correctionPrompt })
+            .then(res => {
+                if (res.text) generatedContent.pinterest.description = res.text.trim();
+            })
+      );
+  }
+  
+  // Post-generation validation and correction for Twitter/X
+  if (generatedContent.twitter.length > 300) {
+      console.warn(`Twitter post too long (${generatedContent.twitter.length}). Requesting correction.`);
+      const correctionPrompt = `Please shorten this X (Twitter) post to be well under 300 characters, in ${language === 'ar' ? 'Arabic' : 'English'}. Preserve the core message, hashtags, and the URL. Make it punchy. Here is the text: "${generatedContent.twitter}"`;
+      correctionTasks.push(
+          ai.models.generateContent({ model: "gemini-2.5-flash", contents: correctionPrompt })
+            .then(res => {
+                if (res.text) generatedContent.twitter = res.text.trim();
+            })
+      );
+  }
+
+  if (correctionTasks.length > 0) {
+      await Promise.all(correctionTasks);
+  }
+
+  return generatedContent;
 };
 
 export const generateContent = async (input: UserInput, language: 'ar' | 'en'): Promise<FinalResult> => {
