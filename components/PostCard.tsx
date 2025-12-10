@@ -66,7 +66,7 @@ const PostCard: React.FC<PostCardProps> = ({ platform, content, keyword, lang, i
       );
       case 'vk': return (
         <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15.07 2H8.93C3.33 2 2 3.33 2 8.93v6.14C2 20.67 3.33 22 8.93 22h6.14c5.6 0 6.93-1.33 6.93-6.93V8.93C22 3.33 20.67 2 15.07 2zM17.6 13.84c.32.32.74.74 1.05 1.05.51.51.51.68 0 1.18-.34.34-1.09.34-1.09.34l-2.54.02c-.89 0-1.47-.48-1.74-1.02-.27-.55-.55-1.02-1.09-1.31-.3-.15-.65-.15-.9.08-.26.23-.33.65-.33 1.02 0 .42.15 1.2.78 1.62.33.22.21.72-.56.77-3.92.2-6.39-2.73-8.31-7.44-.22-.53 0-.89.65-.89h2.6c.46 0 .72.15.9.61.94 2.8 2.47 5.17 3.25 5.17.26 0 .39-.26.39-.72 0-1.84-1.04-2.61-1.04-3.64 0-.82.63-1.18 1.57-1.25.32-.02.73 0 1.06.09.4.15.22.8.06 1.13-.3.62-.71 1.58-.16 1.94.27.18.66.18 1.12-.62.72-1.2 1.2-2.6 1.26-3.55 0-.32.41-.42.79-.42h2.5c.72 0 .9.42.72 1.04-.33 1.45-1.53 4.23-3.19 6.16z" />
+          <path d="M15.07 2 H8.93C3.33 2 2 3.33 2 8.93v6.14C2 20.67 3.33 22 8.93 22h6.14c5.6 0 6.93-1.33 6.93-6.93V8.93C22 3.33 20.67 2 15.07 2zM17.6 13.84c.32.32.74.74 1.05 1.05.51.51.51.68 0 1.18-.34.34-1.09.34-1.09.34l-2.54.02c-.89 0-1.47-.48-1.74-1.02-.27-.55-.55-1.02-1.09-1.31-.3-.15-.65-.15-.9.08-.26.23-.33.65-.33 1.02 0 .42.15 1.2.78 1.62.33.22.21.72-.56.77-3.92.2-6.39-2.73-8.31-7.44-.22-.53 0-.89.65-.89h2.6c.46 0 .72.15.9.61.94 2.8 2.47 5.17 3.25 5.17.26 0 .39-.26.39-.72 0-1.84-1.04-2.61-1.04-3.64 0-.82.63-1.18 1.57-1.25.32-.02.73 0 1.06.09.4.15.22.8.06 1.13-.3.62-.71 1.58-.16 1.94.27.18.66.18 1.12-.62.72-1.2 1.2-2.6 1.26-3.55 0-.32.41-.42.79-.42h2.5c.72 0 .9.42.72 1.04-.33 1.45-1.53 4.23-3.19 6.16z" />
         </svg>
       );
       case 'pinterest': return <div className="font-bold text-lg leading-none">P</div>;
@@ -99,6 +99,31 @@ const PostCard: React.FC<PostCardProps> = ({ platform, content, keyword, lang, i
           return <span key={index}>{part}</span>;
         })}
       </span>
+    );
+  };
+  
+  const MiniCopyButton = ({ textToCopy }: { textToCopy: string }) => {
+    const [isCopied, setIsCopied] = useState(false);
+    const handleMiniCopy = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!textToCopy) return;
+        await navigator.clipboard.writeText(textToCopy);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+    };
+
+    return (
+        <button
+            onClick={handleMiniCopy}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold transition-all duration-200 ${
+                isCopied
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600'
+            }`}
+            aria-label={isCopied ? t.copied : t.copy}
+        >
+            {isCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+        </button>
     );
   };
 
@@ -153,13 +178,19 @@ const PostCard: React.FC<PostCardProps> = ({ platform, content, keyword, lang, i
           ) : (
             <div className="space-y-4">
               <div>
-                <span className="block text-xs uppercase tracking-wider text-gray-400 mb-1 font-bold">{labels.title}</span>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="block text-xs uppercase tracking-wider text-gray-400 font-bold">{labels.title}</span>
+                  <MiniCopyButton textToCopy={content.title} />
+                </div>
                 <div className="text-xl font-bold text-gray-900 dark:text-white mb-2 border-l-4 border-red-500 pl-3">
                   <HighlightedText text={content.title} />
                 </div>
               </div>
               <div>
-                <span className="block text-xs uppercase tracking-wider text-gray-400 mb-1 font-bold">{labels.desc}</span>
+                <div className="flex justify-between items-center mb-1">
+                   <span className="block text-xs uppercase tracking-wider text-gray-400 font-bold">{labels.desc}</span>
+                   <MiniCopyButton textToCopy={content.description} />
+                </div>
                 <HighlightedText text={content.description} />
               </div>
             </div>

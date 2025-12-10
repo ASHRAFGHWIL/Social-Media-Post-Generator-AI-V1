@@ -42,49 +42,50 @@ const resizeImage = (file: File, width: number, height: number): Promise<string>
 };
 
 
-const getTextSchema = () => {
+const getTextSchema = (language: 'ar' | 'en') => {
+  const requestedLang = language === 'ar' ? 'Arabic' : 'English';
   return {
     type: Type.OBJECT,
     properties: {
       facebook: {
         type: Type.STRING,
-        description: "Optimized Facebook post with emojis, engaging text, call to action, and the product link.",
+        description: `Optimized Facebook post in ${requestedLang} with emojis, engaging text, call to action, and the product link.`,
       },
       instagram: {
         type: Type.STRING,
-        description: "Optimized Instagram caption with a strong visual hook, emojis, a clear call to action (e.g., 'Link in Bio'), and 15-20 relevant hashtags. IMPORTANT: Do NOT include the product URL directly in the caption.",
+        description: `Optimized Instagram caption in ${requestedLang} with a strong visual hook, emojis, a clear call to action (e.g., 'Link in Bio'), and 15-20 relevant hashtags. IMPORTANT: Do NOT include the product URL directly in the caption.`,
       },
       twitter: {
         type: Type.STRING,
-        description: "Optimized X (Twitter) post. It must be short, punchy, with emojis, hashtags, and the product link. CRITICAL RULE: The entire response for this field MUST be under 300 characters. DO NOT exceed this limit.",
+        description: `Optimized X (Twitter) post in ${requestedLang}. It must be short, punchy, with emojis, hashtags, and the product link. CRITICAL RULE: The entire response for this field MUST be under 300 characters. DO NOT exceed this limit.`,
       },
       linkedin: {
         type: Type.STRING,
-        description: "Professional LinkedIn post. Corporate/Business tone, focus on value proposition, professional emojis, 3-5 relevant hashtags, and product link.",
+        description: `Professional LinkedIn post in ${requestedLang}. Corporate/Business tone, focus on value proposition, professional emojis, 3-5 relevant hashtags, and product link.`,
       },
       vk: {
         type: Type.STRING,
-        description: "Optimized VK (VKontakte) post. Similar to Facebook but adapted for the platform culture. Engaging, informative, emojis, hashtags, and product link.",
+        description: `Optimized VK (VKontakte) post in Russian. Similar to Facebook but adapted for the platform culture. Engaging, informative, emojis, hashtags, and product link.`,
       },
       pinterest: {
         type: Type.OBJECT,
         properties: {
-          title: { type: Type.STRING, description: "SEO optimized catchy title for Pinterest." },
-          description: { type: Type.STRING, description: "Detailed SEO description for Pinterest with keywords, hashtags and call to action. CRITICAL RULE: The entire response for this field MUST be under 800 characters. DO NOT exceed this limit." }
+          title: { type: Type.STRING, description: `SEO optimized catchy title for Pinterest in ${requestedLang}.` },
+          description: { type: Type.STRING, description: `Detailed SEO description for Pinterest in ${requestedLang} with keywords, hashtags and call to action. CRITICAL RULE: The entire response for this field MUST be under 800 characters. DO NOT exceed this limit.` }
         },
         required: ["title", "description"]
       },
       youtube: {
         type: Type.OBJECT,
         properties: {
-          title: { type: Type.STRING, description: "High CTR (Click-Through Rate) YouTube video title. Engaging and keyword-rich." },
-          description: { type: Type.STRING, description: "Comprehensive YouTube video description. Include a hook in the first 2 lines, keyword usage, a call to action, the product link, and 3-5 relevant hashtags at the bottom." }
+          title: { type: Type.STRING, description: `High CTR (Click-Through Rate) YouTube video title in ${requestedLang}. Engaging and keyword-rich.` },
+          description: { type: Type.STRING, description: `Comprehensive YouTube video description in ${requestedLang}. Include a hook in the first 2 lines, keyword usage, a call to action, the product link, and 3-5 relevant hashtags at the bottom.` }
         },
         required: ["title", "description"]
       },
       tiktok: {
         type: Type.STRING,
-        description: "Optimized TikTok caption. Short, snappy, and engaging with a strong hook. Includes 3-7 high-converting, trending hashtags. IMPORTANT: Do NOT include the product URL; use a 'Link in Bio' call to action instead."
+        description: `Optimized TikTok caption in ${requestedLang}. Short, snappy, and engaging with a strong hook. Includes 3-7 high-converting, trending hashtags. IMPORTANT: Do NOT include the product URL; use a 'Link in Bio' call to action instead.`
       }
     },
     required: ["facebook", "instagram", "twitter", "linkedin", "vk", "pinterest", "youtube", "tiktok"]
@@ -100,7 +101,7 @@ const generateTextPosts = async (ai: GoogleGenAI, input: UserInput, language: 'a
     
     Guidelines:
     1. **Tone**: Professional, engaging, and persuasive.
-    2. **Language**: The output MUST be in the same language as the user's description. If mixed, prioritize ${language === 'ar' ? 'Arabic' : 'English'}.
+    2. **Language (CRITICAL)**: With one exception, the output for ALL fields MUST be exclusively in ${language === 'ar' ? 'Arabic' : 'English'}. **The EXCEPTION is the post for VK (VKontakte), which MUST be in Russian.** There should be no mixing of other languages, especially for keywords or hashtags unless they are brand names. This is a strict instruction.
     3. **Emoji Strategy (CRITICAL)**:
        - **Decorate and beautify ALL posts** with relevant, professional, and well-placed emojis.
        - Emojis should enhance readability and emotional engagement, not clutter the text.
@@ -142,7 +143,7 @@ const generateTextPosts = async (ai: GoogleGenAI, input: UserInput, language: 'a
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
-        responseSchema: getTextSchema(),
+        responseSchema: getTextSchema(language),
         temperature: 0.7,
       },
     });
